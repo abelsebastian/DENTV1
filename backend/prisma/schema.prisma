@@ -1,0 +1,165 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(STAFF)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  auditLogs AuditLog[]
+}
+
+model Patient {
+  id               String          @id @default(uuid())
+  firstName        String
+  lastName         String
+  email            String?
+  phone            String
+  dateOfBirth      DateTime?
+  gender           String?
+  address          String?
+  medicalHistory   String?
+  dentalHistory    String?
+  noShowCount      Int             @default(0)
+  totalAppointments Int            @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  appointments     Appointment[]
+  treatments       Treatment[]
+  payments         Payment[]
+  communications   Communication[]
+  waitlist         Waitlist[]
+}
+
+model Provider {
+  id           String        @id @default(uuid())
+  name         String
+  specialty    String?
+  email        String?
+  phone        String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  appointments Appointment[]
+}
+
+model Appointment {
+  id                String            @id @default(uuid())
+  patientId         String
+  providerId        String
+  procedure         String
+  scheduledAt       DateTime
+  duration          Int               @default(60)
+  status            AppointmentStatus @default(SCHEDULED)
+  chair             String?
+  noShowProbability Float             @default(0)
+  notes             String?
+  isEmergency       Boolean           @default(false)
+  reminderSent      Boolean           @default(false)
+  confirmed         Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  patient           Patient           @relation(fields: [patientId], references: [id])
+  provider          Provider          @relation(fields: [providerId], references: [id])
+}
+
+model Treatment {
+  id                  String          @id @default(uuid())
+  patientId           String
+  title               String
+  description         String?
+  estimatedCost       Float
+  acceptanceProbability Float         @default(0)
+  status              TreatmentStatus @default(PENDING)
+  consentSigned       Boolean         @default(false)
+  followUpDate        DateTime?
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+  patient             Patient         @relation(fields: [patientId], references: [id])
+  payments            Payment[]
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  patientId   String
+  treatmentId String?
+  amount      Float
+  status      PaymentStatus @default(PENDING)
+  method      String?
+  paidAt      DateTime?
+  dueDate     DateTime?
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  patient     Patient       @relation(fields: [patientId], references: [id])
+  treatment   Treatment?    @relation(fields: [treatmentId], references: [id])
+}
+
+model Communication {
+  id        String    @id @default(uuid())
+  patientId String
+  channel   String
+  message   String
+  direction String    @default("INBOUND")
+  sentiment String?
+  intent    String?
+  createdAt DateTime  @default(now())
+  patient   Patient   @relation(fields: [patientId], references: [id])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Waitlist {
+  id          String   @id @default(uuid())
+  patientId   String
+  procedure   String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  patient     Patient  @relation(fields: [patientId], references: [id])
+}
+
+enum Role {
+  ADMIN
+  DENTIST
+  STAFF
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum TreatmentStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  IN_PROGRESS
+  COMPLETED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+  OVERDUE
+}

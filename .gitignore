@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+
+# Build output
+dist/
+build/
+
+# Environment files — never commit secrets
+.env
+.env.local
+.env.production
+
+# ML model files — large binaries, regenerate with train.py
+*.pkl
+*.pt
+*.h5
+*.keras
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Prisma generated client (regenerated via prisma generate)
+node_modules/.prisma/
+
+# ngrok
+ngrok.yml

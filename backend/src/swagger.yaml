@@ -1,0 +1,588 @@
+openapi: 3.0.0
+info:
+  title: Smart DentalOps API
+  version: 1.0.0
+  description: REST API for Smart DentalOps practice management system
+
+servers:
+  - url: /api
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+
+    Patient:
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date-time
+        gender:
+          type: string
+        address:
+          type: string
+        medicalHistory:
+          type: string
+        dentalHistory:
+          type: string
+        noShowCount:
+          type: integer
+        totalAppointments:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    Appointment:
+      type: object
+      properties:
+        id:
+          type: string
+        patientId:
+          type: string
+        providerId:
+          type: string
+        procedure:
+          type: string
+        scheduledAt:
+          type: string
+          format: date-time
+        duration:
+          type: integer
+        status:
+          type: string
+          enum: [SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW]
+        chair:
+          type: string
+        noShowProbability:
+          type: number
+        notes:
+          type: string
+        isEmergency:
+          type: boolean
+        reminderSent:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+security:
+  - bearerAuth: []
+
+paths:
+  # ── Patients ──────────────────────────────────────────────────────────────
+  /patients:
+    get:
+      tags: [Patients]
+      summary: List all patients
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Search by name or phone
+      responses:
+        '200':
+          description: List of patients
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Patient'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      tags: [Patients]
+      summary: Create a new patient
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [firstName, lastName, phone]
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                phone:
+                  type: string
+                email:
+                  type: string
+                dateOfBirth:
+                  type: string
+                  format: date
+                gender:
+                  type: string
+                address:
+                  type: string
+                medicalHistory:
+                  type: string
+                dentalHistory:
+                  type: string
+      responses:
+        '201':
+          description: Patient created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /patients/{id}:
+    get:
+      tags: [Patients]
+      summary: Get patient by ID (includes appointments, treatments, payments)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Patient detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '404':
+          description: Patient not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    put:
+      tags: [Patients]
+      summary: Update a patient
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Patient'
+      responses:
+        '200':
+          description: Updated patient
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Patient'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    delete:
+      tags: [Patients]
+      summary: Delete a patient
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  # ── Appointments ──────────────────────────────────────────────────────────
+  /appointments:
+    get:
+      tags: [Appointments]
+      summary: List appointments
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+          description: Filter by date (YYYY-MM-DD)
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW]
+        - in: query
+          name: providerId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+
+    post:
+      tags: [Appointments]
+      summary: Create an appointment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [patientId, providerId, scheduledAt, procedure]
+              properties:
+                patientId:
+                  type: string
+                providerId:
+                  type: string
+                scheduledAt:
+                  type: string
+                  format: date-time
+                procedure:
+                  type: string
+                duration:
+                  type: integer
+                  default: 60
+                chair:
+                  type: string
+                notes:
+                  type: string
+                isEmergency:
+                  type: boolean
+      responses:
+        '201':
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Double booking conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /appointments/today:
+    get:
+      tags: [Appointments]
+      summary: Get today's appointments
+      responses:
+        '200':
+          description: Today's appointments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Appointment'
+
+  /appointments/slots:
+    get:
+      tags: [Appointments]
+      summary: Get available slots for a provider on a date
+      parameters:
+        - in: query
+          name: providerId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: date
+          required: true
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: patientId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Available slots with recommendation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  available:
+                    type: array
+                    items:
+                      type: string
+                      format: date-time
+                  recommended:
+                    type: string
+                    format: date-time
+                    nullable: true
+                  noShowProbability:
+                    type: number
+
+  /appointments/export/appointments:
+    get:
+      tags: [Appointments]
+      summary: Export appointments as CSV
+      parameters:
+        - in: query
+          name: date
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [SCHEDULED, CONFIRMED, COMPLETED, CANCELLED, NO_SHOW]
+        - in: query
+          name: providerId
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CSV file download
+          content:
+            text/csv:
+              schema:
+                type: string
+
+  /appointments/{id}:
+    put:
+      tags: [Appointments]
+      summary: Update an appointment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Appointment'
+      responses:
+        '200':
+          description: Updated appointment
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Appointment'
+
+    delete:
+      tags: [Appointments]
+      summary: Delete an appointment
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # ── Analytics ─────────────────────────────────────────────────────────────
+  /analytics/kpi:
+    get:
+      tags: [Analytics]
+      summary: Key performance indicators
+      responses:
+        '200':
+          description: KPI summary
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalPatients:
+                    type: integer
+                  totalRevenue:
+                    type: number
+                  totalAppointments:
+                    type: integer
+
+  /analytics/no-show-rate:
+    get:
+      tags: [Analytics]
+      summary: No-show rate percentage
+      responses:
+        '200':
+          description: No-show statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalAppointments:
+                    type: integer
+                  noShowAppointments:
+                    type: integer
+                  noShowRate:
+                    type: number
+                    description: Percentage (0–100)
+
+  /analytics/provider-performance:
+    get:
+      tags: [Analytics]
+      summary: Patients handled per provider
+      responses:
+        '200':
+          description: Provider performance list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    providerId:
+                      type: string
+                    providerName:
+                      type: string
+                    specialty:
+                      type: string
+                    totalAppointments:
+                      type: integer
+                    patientsHandled:
+                      type: integer
+
+  /analytics/dashboard:
+    get:
+      tags: [Analytics]
+      summary: Full dashboard summary
+      responses:
+        '200':
+          description: Dashboard metrics
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /analytics/revenue:
+    get:
+      tags: [Analytics]
+      summary: Monthly revenue for last 6 months
+      responses:
+        '200':
+          description: Revenue by month
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    month:
+                      type: string
+                    revenue:
+                      type: number
+
+  /analytics/appointments-trend:
+    get:
+      tags: [Analytics]
+      summary: Daily appointment trend for last 7 days
+      responses:
+        '200':
+          description: Trend data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    day:
+                      type: string
+                    total:
+                      type: integer
+                    noShow:
+                      type: integer
+
+  /analytics/alerts:
+    get:
+      tags: [Analytics]
+      summary: Active alerts (overdue payments, follow-ups, high no-show risk)
+      responses:
+        '200':
+          description: Alerts grouped by type
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  overduePayments:
+                    type: array
+                    items:
+                      type: object
+                  pendingFollowUps:
+                    type: array
+                    items:
+                      type: object
+                  highRiskToday:
+                    type: array
+                    items:
+                      type: object
