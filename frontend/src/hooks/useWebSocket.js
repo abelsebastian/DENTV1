@@ -18,13 +18,10 @@ export function useWebSocket(onMessage) {
     let url;
 
     if (import.meta.env.VITE_WS_URL) {
-      // Explicit override — highest priority
       url = import.meta.env.VITE_WS_URL;
     } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      // Local dev — connect directly to backend
       url = 'ws://localhost:5000';
     } else {
-      // Behind proxy / ngrok / production — use same host, upgrade protocol
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
       url = `${protocol}://${window.location.host}`;
     }

@@ -13,9 +13,12 @@ const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
-app.use(cors());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || '*',
+  credentials: true,
+}));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false })); // required for Twilio webhook payloads
+app.use(express.urlencoded({ extended: false }));
 
 // Swagger docs — served via CDN, no extra dependencies
 const swaggerSpec = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));

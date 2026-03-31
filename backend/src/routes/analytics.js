@@ -27,6 +27,71 @@ router.get('/kpi', async (req, res) => {
   }
 });
 
+// Chair utilization endpoint
+// Formula: (sum of completed appointment durations / total available chair minutes) * 100
+// Clinic hours: 9AM–5PM = 480 min/day. Query range defaults to current month.
+router.get('/chair-utilization', async (req, res) => {
+  try {
+    const CLINIC_OPEN_MINUTES = 480; // 8 hours per day
+
+    // Default to current month
+    const now        = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const monthEnd   = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+
+    // Count working days in the month (Mon–Sat, exclude Sun)
+    let workingDays = 0;
+    const cursor = new Date(monthStart);
+    while (cursor <= monthEnd) {
+      if (cursor.getDay() !== 0) workingDays++; // exclude Sunday
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    // Get number of active chairs (distinct chair values used this month)
+    const chairs = await prisma.appointment.findMany({
+      where: { scheduledAt: { gte: monthStart, lte: monthEnd }, chair: { not: null } },
+      select: { chair: true },
+      distinct: ['chair'],
+    });
+    const numChairs = Math.max(chairs.length, 1); // at least 1 chair
+
+    const totalAvailableMinutes = CLINIC_OPEN_MINUTES * workingDays * numChairs;
+
+    // Sum durations of COMPLETED appointments this month
+    const completed = await prisma.appointment.aggregate({
+      where: {
+        scheduledAt: { gte: monthStart, lte: monthEnd },
+        status: 'COMPLETED',
+      },
+      _sum: { duration: true },
+      _count: true,
+    });
+
+    const usedMinutes = completed._sum.duration || 0;
+    const utilizationRate = totalAvailableMinutes > 0
+      ? parseFloat(((usedMinutes / totalAvailableMinutes) * 100).toFixed(1))
+      : 0;
+
+    // Status label
+    let status = 'LOW';
+    if (utilizationRate >= 80) status = 'HIGH';
+    else if (utilizationRate >= 60) status = 'OPTIMAL';
+
+    res.json({
+      utilizationRate,
+      usedMinutes,
+      totalAvailableMinutes,
+      workingDays,
+      numChairs,
+      completedAppointments: completed._count,
+      status, // LOW | OPTIMAL | HIGH
+      period: { from: monthStart, to: monthEnd },
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // No-show rate endpoint
 router.get('/no-show-rate', async (req, res) => {
   try {

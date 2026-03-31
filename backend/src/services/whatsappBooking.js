@@ -250,8 +250,7 @@ async function handleBookingFlow(phone, message, patient) {
         `🦷 ${s.procedure}\n` +
         `📅 ${formatDate(new Date(s.chosenSlot))}\n` +
         `⏰ ${s.timeStr}\n` +
-        `👨‍⚕️ ${s.providerName}\n\n` +
-        `⚠️ No-show risk: ${noShowResult.risk}\n` +
+        `👨‍⚕️ ${s.providerName}\n` +
         `⏱️ Est. duration: ${Math.round(predictedDuration)} min\n\n` +
         `See you soon! Reply *BOOK* to make another appointment.`;
     } catch (err) {

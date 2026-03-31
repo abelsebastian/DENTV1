@@ -13,6 +13,7 @@ export default function Dashboard() {
   const [trend, setTrend] = useState([]);
   const [todayAppts, setTodayAppts] = useState([]);
   const [alerts, setAlerts] = useState({ overduePayments: [], pendingFollowUps: [], highRiskToday: [] });
+  const [utilization, setUtilization] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const loadAll = useCallback(() => {
@@ -22,9 +23,10 @@ export default function Dashboard() {
       api.get('/analytics/appointments-trend'),
       api.get('/appointments/today'),
       api.get('/analytics/alerts'),
-    ]).then(([s, r, t, a, al]) => {
+      api.get('/analytics/chair-utilization'),
+    ]).then(([s, r, t, a, al, u]) => {
       setStats(s.data); setRevenue(r.data); setTrend(t.data);
-      setTodayAppts(a.data); setAlerts(al.data);
+      setTodayAppts(a.data); setAlerts(al.data); setUtilization(u.data);
       setLastUpdated(new Date());
     });
   }, []);
@@ -100,7 +102,7 @@ export default function Dashboard() {
         <StatCard label="Acceptance Rate" value={`${stats.acceptanceRate}%`} sub="Treatment plans" color="purple" />
         <StatCard label="Total Revenue" value={`$${stats.totalRevenue.toLocaleString()}`} color="green" />
         <StatCard label="Pending Collections" value={`$${stats.pendingPayments.toLocaleString()}`} color="yellow" />
-        <StatCard label="Chair Utilization" value={`${stats.utilizationRate}%`} sub="This month" color={stats.utilizationRate > 70 ? 'green' : 'yellow'} />
+        <StatCard label="Chair Utilization" value={utilization ? `${utilization.utilizationRate}%` : `${stats.utilizationRate}%`} sub={utilization ? `${utilization.usedMinutes} / ${utilization.totalAvailableMinutes} min` : 'This month'} color={utilization ? (utilization.utilizationRate >= 80 ? 'green' : utilization.utilizationRate >= 60 ? 'yellow' : 'red') : 'yellow'} />
         <StatCard label="Month Appointments" value={stats.monthAppointments} color="blue" />
       </div>
 
