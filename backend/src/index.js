@@ -14,11 +14,17 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || '*',
+  origin: ['https://dentv2.vercel.app', 'http://localhost:3000'],
   credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Bypass ngrok browser warning for all requests
+app.use((req, res, next) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true');
+  next();
+});
 
 // Swagger docs — served via CDN, no extra dependencies
 const swaggerSpec = yaml.load(fs.readFileSync(path.join(__dirname, 'swagger.yaml'), 'utf8'));
@@ -59,6 +65,7 @@ app.use('/api/admin', require('./routes/admin'));
 app.use('/api/waitlist', require('./routes/waitlist'));
 app.use('/api/scheduler', require('./routes/scheduler'));
 app.use('/api/sms', require('./routes/sms'));
+app.use('/api/whatsapp', require('./routes/whatsapp'));
 
 // WebSocket broadcast helper
 const broadcast = (data) => {

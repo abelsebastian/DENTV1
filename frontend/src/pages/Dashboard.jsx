@@ -15,6 +15,13 @@ export default function Dashboard() {
   const [alerts, setAlerts] = useState({ overduePayments: [], pendingFollowUps: [], highRiskToday: [] });
   const [utilization, setUtilization] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
+  const [now, setNow] = useState(new Date());
+
+  // Live clock — updates every second
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   const loadAll = useCallback(() => {
     Promise.all([
@@ -53,7 +60,8 @@ export default function Dashboard() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
         <div className="text-right">
-          <p className="text-sm text-gray-500">{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-sm text-gray-500">{now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+          <p className="text-sm font-medium text-gray-700">{now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</p>
           {lastUpdated && (
             <p className="text-xs text-green-500 flex items-center justify-end gap-1 mt-0.5">
               <Wifi size={11} /> Live · Updated {lastUpdated.toLocaleTimeString()}

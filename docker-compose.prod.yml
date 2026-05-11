@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dentalops-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-dentalops}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-dentalops}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-dentalops} -d ${POSTGRES_DB:-dentalops}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  ml-service:
+    build:
+      context: ./ml-service
+    container_name: dentalops-ml
+    restart: unless-stopped
+    expose:
+      - "8000"
+
+  nlp-service:
+    build:
+      context: ./nlp-service
+    container_name: dentalops-nlp
+    restart: unless-stopped
+    expose:
+      - "8001"
+
+  duration-service:
+    build:
+      context: ./duration-service
+    container_name: dentalops-duration
+    restart: unless-stopped
+    expose:
+      - "8002"
+
+  ann-service:
+    build:
+      context: ./ann-service
+    container_name: dentalops-ann
+    restart: unless-stopped
+    expose:
+      - "8003"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dentalops-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-dentalops}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-dentalops}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      PORT: 5000
+      ML_SERVICE_URL: http://ml-service:8000
+      NLP_SERVICE_URL: http://nlp-service:8001
+      DURATION_SERVICE_URL: http://duration-service:8002
+      ANN_SERVICE_URL: http://ann-service:8003
+      TWILIO_SID: ${TWILIO_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_PHONE: ${TWILIO_PHONE:-}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      META_WHATSAPP_TOKEN: ${META_WHATSAPP_TOKEN:-}
+      META_WHATSAPP_PHONE_ID: ${META_WHATSAPP_PHONE_ID:-}
+      META_VERIFY_TOKEN: ${META_VERIFY_TOKEN:-}
+    expose:
+      - "5000"
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: dentalops-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+
+volumes:
+  postgres_data:

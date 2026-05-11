@@ -31,6 +31,13 @@ model Patient {
   dentalHistory    String?
   noShowCount      Int             @default(0)
   totalAppointments Int            @default(0)
+  hasDiabetes      Boolean         @default(false)
+  hasHeartCondition Boolean        @default(false)
+  hasBloodPressure Boolean         @default(false)
+  allergies        String?
+  currentMedications String?
+  bloodGroup       String?
+  onboarded        Boolean         @default(false)
   createdAt        DateTime        @default(now())
   updatedAt        DateTime        @updatedAt
   appointments     Appointment[]

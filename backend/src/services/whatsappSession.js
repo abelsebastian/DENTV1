@@ -1,26 +1,16 @@
 /**
- * WhatsApp Booking Session Store
+ * WhatsApp Booking + Onboarding Session Store
  * In-memory session state per phone number.
  * Sessions expire after 15 minutes of inactivity.
  */
 
-const EXPIRY_MS = 15 * 60 * 1000; // 15 minutes
-
+const EXPIRY_MS = 15 * 60 * 1000;
 const sessions = new Map();
 
 /**
- * Session shape:
- * {
- *   step: 'IDENTIFY' | 'PROCEDURE' | 'DATE' | 'TIME' | 'CONFIRM' | 'DONE',
- *   patientId: string,
- *   patientName: string,
- *   procedure: string,
- *   date: string,        // YYYY-MM-DD
- *   time: string,        // HH:MM
- *   providerId: string,
- *   providerName: string,
- *   lastActivity: number
- * }
+ * Session steps:
+ *   ONBOARD_NAME → ONBOARD_DOB → ONBOARD_CONDITIONS → ONBOARD_ALLERGIES → DONE
+ *   IDENTIFY → PROCEDURE → DATE → TIME → CONFIRM → DONE
  */
 
 function get(phone) {
