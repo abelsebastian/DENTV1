@@ -73,7 +73,7 @@ export default function Login() {
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
-        <p className="text-xs text-gray-400 text-center mt-4">Demo: admin@dentalops.com / password123</p>
+
       </div>
     </div>
   );
