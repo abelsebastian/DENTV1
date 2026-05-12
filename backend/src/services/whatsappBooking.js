@@ -12,6 +12,7 @@ const { PrismaClient } = require('@prisma/client');
 const session = require('./whatsappSession');
 const { predictNoShowANN } = require('./mlClient');
 const { predictDuration } = require('./durationClient');
+const { initiateConfirmationCall } = require('./outboundCall');
 
 const prisma = new PrismaClient();
 
@@ -333,6 +334,17 @@ async function handleBookingFlow(phone, message, patient) {
       });
 
       session.clear(phone);
+
+      // Trigger outbound confirmation call (non-blocking)
+      initiateConfirmationCall({
+        phone,
+        patientName: patient.firstName,
+        procedure: s.procedure,
+        date: formatDate(new Date(s.chosenSlot)),
+        time: s.timeStr,
+        providerName: s.providerName,
+        appointmentId: appointment.id,
+      }).catch((err) => console.warn(`[WhatsApp Booking] Confirmation call failed: ${err.message}`));
 
       return `🎉 *Appointment Booked!*\n\n` +
         `📋 Ref: ${appointment.id.slice(0, 8).toUpperCase()}\n` +

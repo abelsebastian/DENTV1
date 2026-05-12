@@ -66,6 +66,7 @@ app.use('/api/waitlist', require('./routes/waitlist'));
 app.use('/api/scheduler', require('./routes/scheduler'));
 app.use('/api/sms', require('./routes/sms'));
 app.use('/api/whatsapp', require('./routes/whatsapp'));
+app.use('/api/voice', require('./routes/voice'));
 
 // WebSocket broadcast helper
 const broadcast = (data) => {
