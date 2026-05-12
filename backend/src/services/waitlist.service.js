@@ -90,7 +90,7 @@ async function findWaitlistCandidates(cancelledAppointment) {
 }
 
 /**
- * Handle a cancellation: find candidates and emit WebSocket event.
+ * Handle a cancellation: find candidates, notify top one via WhatsApp, emit WebSocket event.
  * Called automatically when an appointment is cancelled.
  *
  * @param {object} cancelledAppointment
@@ -105,6 +105,22 @@ async function handleCancellation(cancelledAppointment) {
     }
 
     console.log(`[Waitlist] Found ${candidates.length} candidate(s) for: ${cancelledAppointment.procedure}`);
+
+    // Auto-contact top candidate via WhatsApp
+    const top = candidates[0];
+    if (top.phone) {
+      const date = new Date(cancelledAppointment.scheduledAt).toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+      const time = new Date(cancelledAppointment.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      const msg = `Hi ${top.name.split(' ')[0]}! A ${cancelledAppointment.procedure} slot just opened on ${date} at ${time}. ` +
+        `Would you like to take it? Reply *YES* to confirm or *NO* to pass.`;
+      try {
+        const { sendSMS } = require('./sms.service');
+        await sendSMS(top.phone, msg);
+        console.log(`[Waitlist] Auto-contacted ${top.name} (${top.phone}) for opened slot`);
+      } catch (err) {
+        console.warn(`[Waitlist] Failed to contact ${top.name}: ${err.message}`);
+      }
+    }
 
     // Emit WebSocket event to all connected clients
     emit('WAITLIST_SUGGESTION', {

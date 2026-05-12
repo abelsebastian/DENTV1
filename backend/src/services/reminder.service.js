@@ -107,18 +107,21 @@ async function sendReminders() {
       }
 
       if (phone) {
+        // Mark sent FIRST to prevent duplicates if process restarts
+        await prisma.appointment.update({
+          where: { id: appt.id },
+          data:  { reminderSent: true },
+        });
         await sendSMS(phone, message);
       } else {
-        // No phone — log only
+        // No phone — mark sent and log only
+        await prisma.appointment.update({
+          where: { id: appt.id },
+          data:  { reminderSent: true },
+        });
         console.log(`[ReminderService] No phone for ${name} (${appt.id}) — logged only.`);
         console.log(`[ReminderService] MSG: ${message}`);
       }
-
-      // ── Mark sent ────────────────────────────────────────────────────────
-      await prisma.appointment.update({
-        where: { id: appt.id },
-        data:  { reminderSent: true },
-      });
 
       console.log(`[ReminderService] Reminder sent for ${name} | ${date} ${time} | risk: ${(probability * 100).toFixed(0)}%`);
       sent++;
