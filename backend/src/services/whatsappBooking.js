@@ -13,6 +13,7 @@ const session = require('./whatsappSession');
 const { predictNoShowANN } = require('./mlClient');
 const { predictDuration } = require('./durationClient');
 const { initiateConfirmationCall } = require('./outboundCall');
+const { sendPaymentLinkViaWhatsApp } = require('./razorpayService');
 
 const prisma = new PrismaClient();
 
@@ -345,6 +346,14 @@ async function handleBookingFlow(phone, message, patient) {
         providerName: s.providerName,
         appointmentId: appointment.id,
       }).catch((err) => console.warn(`[WhatsApp Booking] Confirmation call failed: ${err.message}`));
+
+      // Send Razorpay payment link via WhatsApp (non-blocking)
+      sendPaymentLinkViaWhatsApp({
+        patientName: `${patient.firstName} ${patient.lastName}`,
+        phone,
+        procedure: s.procedure,
+        appointmentId: appointment.id,
+      }).catch((err) => console.warn(`[WhatsApp Booking] Payment link failed: ${err.message}`));
 
       return `🎉 *Appointment Booked!*\n\n` +
         `📋 Ref: ${appointment.id.slice(0, 8).toUpperCase()}\n` +

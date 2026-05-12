@@ -3,8 +3,64 @@ const { PrismaClient } = require('@prisma/client');
 const { authenticate } = require('../middleware/auth');
 const { emit } = require('../events/handler');
 const { audit } = require('../middleware/audit');
+const crypto = require('crypto');
 
 const prisma = new PrismaClient();
+
+// ── Razorpay Webhook (no auth — verified by signature) ────────────────────────
+router.post('/razorpay-webhook', async (req, res) => {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || '';
+    const signature = req.headers['x-razorpay-signature'];
+
+    // Verify signature if secret is configured
+    if (secret && signature) {
+      const expected = crypto.createHmac('sha256', secret).update(JSON.stringify(req.body)).digest('hex');
+      if (expected !== signature) {
+        return res.status(400).json({ error: 'Invalid signature' });
+      }
+    }
+
+    const event = req.body.event;
+    const payload = req.body.payload;
+
+    if (event === 'payment_link.paid') {
+      const notes = payload.payment_link?.entity?.notes || {};
+      const appointmentId = notes.appointmentId;
+      const amount = (payload.payment_link?.entity?.amount || 0) / 100;
+
+      if (appointmentId) {
+        // Create payment record
+        const appointment = await prisma.appointment.findUnique({
+          where: { id: appointmentId },
+          include: { patient: true },
+        });
+
+        if (appointment) {
+          const payment = await prisma.payment.create({
+            data: {
+              patientId: appointment.patientId,
+              amount,
+              status: 'PAID',
+              method: 'Razorpay',
+              paidAt: new Date(),
+              notes: `Payment link: ${payload.payment_link?.entity?.id || 'N/A'}`,
+            },
+            include: { patient: true },
+          });
+          emit('PAYMENT_RECORDED', payment);
+          console.log(`[Razorpay Webhook] Payment recorded: ₹${amount} from ${appointment.patient.firstName} for appointment ${appointmentId}`);
+        }
+      }
+    }
+
+    res.json({ status: 'ok' });
+  } catch (err) {
+    console.error(`[Razorpay Webhook] Error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.use(authenticate);
 
 router.get('/', async (req, res) => {
