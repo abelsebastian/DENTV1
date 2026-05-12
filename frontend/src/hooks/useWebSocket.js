@@ -20,10 +20,10 @@ export function useWebSocket(onMessage) {
     if (import.meta.env.VITE_WS_URL) {
       url = import.meta.env.VITE_WS_URL;
     } else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-      url = 'ws://localhost:5000';
+      url = 'ws://localhost:5000/ws';
     } else {
       const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-      url = `${protocol}://${window.location.host}`;
+      url = `${protocol}://${window.location.host}/ws`;
     }
 
     ws.current = new WebSocket(url);

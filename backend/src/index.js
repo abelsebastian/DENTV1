@@ -11,10 +11,10 @@ const { startReminderJob } = require('./services/reminder.service');
 
 const app = express();
 const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+const wss = new WebSocketServer({ server, path: '/ws' });
 
 app.use(cors({
-  origin: ['https://dentv2.vercel.app', 'http://localhost:3000'],
+  origin: (origin, cb) => cb(null, true),
   credentials: true,
 }));
 app.use(express.json());
